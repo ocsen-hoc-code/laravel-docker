@@ -1,0 +1,62 @@
+version: '3.5'
+
+services:
+  db:
+    image: mysql:5.7
+    container_name: db
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PASSWORD
+      MYSQL_DATABASE: $MYSQL_DATABASE
+      MYSQL_USER: $MYSQL_USER
+      MYSQL_PASSWORD: $MYSQL_PASSWORD
+    ports:
+      - "3306:3306"
+    volumes: 
+      - dbdata:/var/lib/mysql
+    networks:
+      - laravel-network
+
+  laravel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ocsen-laravel
+    depends_on: 
+      - db
+    links:
+      - db
+    container_name: laravel
+    restart: unless-stopped
+    ports:
+      # - "80:80"
+      - "9000:9000"
+   
+    working_dir: /var/www
+    volumes:
+      - ./web:/var/www
+    networks:
+      - laravel-network
+
+  webserver:
+    depends_on:
+      - laravel
+    image: nginx:latest
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./web:/var/www
+      - ./nginx-conf:/etc/nginx/conf.d
+    networks:
+      - laravel-network
+
+volumes:
+  dbdata:
+    driver: local
+
+networks:
+  laravel-network:
+    driver: bridge  
